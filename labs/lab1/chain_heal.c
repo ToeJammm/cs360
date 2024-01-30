@@ -19,39 +19,66 @@ typedef struct node // node for each player
     struct node **adj;
     int adj_size;
     int visited; //for dfs
+    int health_added;
+
 } Node;
 
-int DFS(Node *index, int power, int jumpsLeft, int powReduction, int hop) {
+typedef struct Global
+{
+    int initRange, jumpRange, numJumps, initPow;
+    double powReduction;
+} Global;
+
+int bestHealing = 0;
+
+int DFS(Node *index, Global *info, int hop, int total_healing) {
+
+
+    int power = rint(info->initPow * pow(1-info->powReduction, hop - 1));
+    
+    printf("power: %d\n", power);
 
 
     if(index->visited == 1) { //check if visited
-        printf("returned because already visited %s \n", index->name);
-        return 0;
+        return total_healing;
+    }
+
+    if(info->numJumps - (hop - 1) == 0) {
+        return total_healing;
     }
 
     index->visited = 1; //set visited field
 
-    printf("visited: %s  hop: %d \n\n", index->name, hop);
+   printf("visited: %s  hop: %d \n", index->name, hop);
+    int healingAdded;
+    if((index->max_PP - index->cur_PP) <= power) { //set new health value
+        healingAdded = index->max_PP - index->cur_PP;
+        total_healing += healingAdded; // adding healed amount
+        printf("1: healed %s %d HP\n", index->name, healingAdded);
+        index->cur_PP = index->max_PP;
+    } else if ((index->max_PP - index->cur_PP) > power) {
+        healingAdded = power;
+        printf("2: healed %s %d HP\n", index->name, healingAdded);
+        total_healing += power;
+        index->cur_PP += power;
+    }
+
+    printf("current HP: %d/%d\n\n", index->cur_PP, index->max_PP);
     
 
-    power *= powReduction; //reduce power, jumps, and increase hop
     hop += 1;
-    jumpsLeft -= 1;
     
-    printf("number of jumps left at %s: %d \n", index->name, jumpsLeft);
-
-    if(jumpsLeft == 0) {
-        //printf("returned because no jumps left at %s \n", index->name);
-        return 0;
-    }
-
-    
+    int amount;
     for(int i = 0; i < index->adj_size; i++) {
-        DFS(index->adj[i], power, jumpsLeft, powReduction, hop);
+        amount = DFS(index->adj[i], info, hop, total_healing);
+        if(amount > bestHealing) {
+            bestHealing = amount;
+        }
+        
     }
 
-
-    return 0;
+    index->visited = 0;
+    return total_healing;
 }
 
 void printNode(Node node)
@@ -77,22 +104,21 @@ void resetNodes(Node **nodeArray, int nodeCount) {
 // use scanf to read in words rather than lines
 int main(int argc, char **argv) // initial range, jump range, num jumps, initial power, power reduction
 {
+    Global *info = (Global *) malloc(sizeof(Global));
     if (argc != 6)
     {
         printf("incorrect number of arguements");
         return 0;
     }
     int nodeSize = sizeof(Node); // for malloc
-    int initRange, jumpRange, numJumps, initPow;
-    double powReduction;
-    initRange = atoi(argv[1]);
-    jumpRange = atoi(argv[2]);
-    numJumps = atoi(argv[3]);
-    initPow = atoi(argv[4]);
-    powReduction = atof(argv[5]);
+    info->initRange = atoi(argv[1]);
+    info->jumpRange = atoi(argv[2]);
+    info->numJumps = atoi(argv[3]);
+    info->initPow = atoi(argv[4]);
+    info->powReduction = atof(argv[5]);
 
     printf("init Range: %d \njumpRange: %d \nnumJumps: %d \ninitPow: %d \npowReduction: %.2f",
-           initRange, jumpRange, numJumps, initPow, powReduction);
+           info->initRange, info->jumpRange, info->numJumps, info->initPow, info->powReduction);
 
     printf("\nnow reading in nodes\n\n");
 
@@ -142,7 +168,7 @@ int main(int argc, char **argv) // initial range, jump range, num jumps, initial
         {
             xVal = abs(nodeArray[i]->x - nodeArray[j]->x);
             yVal = abs(nodeArray[i]->y - nodeArray[j]->y);
-            if ((sqrt(xVal * xVal) + (yVal * yVal)) <= jumpRange && (i != j))
+            if ((sqrt(xVal * xVal) + (yVal * yVal)) <= info->jumpRange && (i != j))
                 nodeArray[i]->adj_size++;
         }
         printf(" %s's adj list size set to %d \n", nodeArray[i]->name, nodeArray[i]->adj_size);
@@ -156,7 +182,7 @@ int main(int argc, char **argv) // initial range, jump range, num jumps, initial
         {            
                 xVal = abs(nodeArray[i]->x - nodeArray[j]->x);
                 yVal = abs(nodeArray[i]->y - nodeArray[j]->y);
-                if ((sqrt(xVal * xVal) + (yVal * yVal)) <= jumpRange && (i != j)) {
+                if ((sqrt(xVal * xVal) + (yVal * yVal)) <= info->jumpRange && (i != j)) {
                     nodeArray[i]->adj[adjListIndex] = nodeArray[j];
                     //printf("inserting %s into %s's adj list\n\n", nodeArray[j]->name, nodeArray[j]->name);
                     adjListIndex++;
@@ -185,12 +211,13 @@ int main(int argc, char **argv) // initial range, jump range, num jumps, initial
         for(int i = 0; i < nodeCount; i++) {
               xVal = abs(nodeArray[0]->x - nodeArray[i]->x);
               yVal = abs(nodeArray[0]->y - nodeArray[i]->y);
-                if(sqrt(xVal * xVal) + (yVal * yVal) <= initRange)  {
+                if(sqrt(xVal * xVal) + (yVal * yVal) <= info->initRange)  {
                     resetNodes(nodeArray, nodeCount);
                     printf("calling DFS \n");
-                    DFS(nodeArray[i], initPow, numJumps, powReduction, 1);
+                    DFS(nodeArray[i], info, 1, 0);
                 }
             }
+            printf("Best Heal: %d\n", bestHealing);
            return 0;
         }
 
@@ -212,14 +239,3 @@ int main(int argc, char **argv) // initial range, jump range, num jumps, initial
         Return.
         
         */
-
-
-        
-// if(index->cur_PP < index->max_PP && (index->max_PP - index->cur_PP) < power) { //set new health value
-    //     index->cur_PP = index->max_PP;
-    // } else if (index->cur_PP < index->max_PP && (index->max_PP - index->cur_PP) > power) {
-    //     index->cur_PP += power;
-    // } //saved this for later in dfs
-
-
-    
