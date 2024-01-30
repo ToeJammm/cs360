@@ -142,7 +142,35 @@ int main(int argc, char **argv) // initial range, jump range, num jumps, initial
 
 
         //dfs - all visited fields = 0 at this point
+        /*
+        determine each of the nodes that is within initial_range of Urgosa. 
+        For each of these nodes, you perform a depth-first search to find the optimal 
+        healing path starting from the node. The depth-first search enumerates all paths 
+        starting from the node. You maintain the best path, and at the end of the program, 
+        you print it.
+        
 
+        Doing the DFS: Now you should add a visited field to each node for your DFS. 
+        You should write a DFS() procedure, which has three arguments:
+
+        The node.
+        The hop number.
+        A pointer to a struct that contains global information (such as num_jumps, and power_reduction).
+        Now write a DFS that traverses all of the paths from each starting node.
+
+
+        DFS Process:
+        Check n's visited field. If true, then return.
+        Set n's visited field to true.
+        Optionally do some activity on n.
+        Then, for all edges of the form (n,u) call DFS on u.
+        Optionally Do some final activity on n.
+        Return.
+                
+
+        I will need to do this for each starting node, which means I will have to reset the adjacency
+        list values to default, and make to sure to store the paths 
+        */
         
 
 
