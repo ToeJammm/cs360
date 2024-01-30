@@ -21,6 +21,39 @@ typedef struct node // node for each player
     int visited; //for dfs
 } Node;
 
+int DFS(Node *index, int power, int jumpsLeft, int powReduction, int hop) {
+
+
+    if(index->visited == 1) { //check if visited
+        printf("returned because already visited %s \n", index->name);
+        return 0;
+    }
+
+    index->visited = 1; //set visited field
+
+    printf("visited: %s  hop: %d \n\n", index->name, hop);
+    
+
+    power *= powReduction; //reduce power, jumps, and increase hop
+    hop += 1;
+    jumpsLeft -= 1;
+    
+    printf("number of jumps left at %s: %d \n", index->name, jumpsLeft);
+
+    if(jumpsLeft == 0) {
+        //printf("returned because no jumps left at %s \n", index->name);
+        return 0;
+    }
+
+    
+    for(int i = 0; i < index->adj_size; i++) {
+        DFS(index->adj[i], power, jumpsLeft, powReduction, hop);
+    }
+
+
+    return 0;
+}
+
 void printNode(Node node)
 {
     printf("x: %d\n", node.x);
@@ -33,6 +66,12 @@ void printNode(Node node)
         printf("prev: %s", node.prev->name);
     }
     printf("\n\n");
+}
+
+void resetNodes(Node **nodeArray, int nodeCount) {
+    for(int i = 0; i < nodeCount; i++) {
+        nodeArray[i]->visited = 0;
+    }
 }
 
 // use scanf to read in words rather than lines
@@ -61,7 +100,6 @@ int main(int argc, char **argv) // initial range, jump range, num jumps, initial
     Node *previous = &node; // keeps track of previous node
     node.name = malloc(256);
     node.prev = NULL;
-    node.visited = 0;
     scanf("%d %d %d %d %255s", &node.x, &node.y, &node.cur_PP, &node.max_PP, node.name);
     int nodeCount = 1; // urgosa's node
 
@@ -72,7 +110,6 @@ int main(int argc, char **argv) // initial range, jump range, num jumps, initial
     while (scanf("%d %d %d %d %255s", &x, &y, &curr_PP, &max_PP, name) == 5)
     {
         Node *newNode = malloc(nodeSize);
-        newNode->visited = 0;
         newNode->x = x;
         newNode->y = y;
         newNode->cur_PP = curr_PP;
@@ -141,11 +178,48 @@ int main(int argc, char **argv) // initial range, jump range, num jumps, initial
        }
 
 
+        printf("commencing DFS\n\n");
         //dfs - all visited fields = 0 at this point
 
+        //int maxHealing;
+        for(int i = 0; i < nodeCount; i++) {
+              xVal = abs(nodeArray[0]->x - nodeArray[i]->x);
+              yVal = abs(nodeArray[0]->y - nodeArray[i]->y);
+                if(sqrt(xVal * xVal) + (yVal * yVal) <= initRange)  {
+                    resetNodes(nodeArray, nodeCount);
+                    printf("calling DFS \n");
+                    DFS(nodeArray[i], initPow, numJumps, powReduction, 1);
+                }
+            }
+           return 0;
+        }
+
+        /*
+        Doing the DFS: Now you should add a visited field to each node for your DFS. 
+        You should write a DFS() procedure, which has three arguments:
+
+        The node.
+        The hop number.
+        A pointer to a struct that contains global information (such as num_jumps, and power_reduction).
+        Now write a DFS that traverses all of the paths from each starting node. Have it print out [node,hop] 
+        for each time that it visits a node.
         
+        Check n's visited field. If true, then return.
+        Set n's visited field to true.
+        Optionally do some activity on n.
+        Then, for all edges of the form (n,u) call DFS on u.
+        Optionally Do some final activity on n.
+        Return.
+        
+        */
 
 
+        
+// if(index->cur_PP < index->max_PP && (index->max_PP - index->cur_PP) < power) { //set new health value
+    //     index->cur_PP = index->max_PP;
+    // } else if (index->cur_PP < index->max_PP && (index->max_PP - index->cur_PP) > power) {
+    //     index->cur_PP += power;
+    // } //saved this for later in dfs
 
-    return 0;
-}
+
+    
