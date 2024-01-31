@@ -20,73 +20,84 @@ typedef struct node // node for each player
     int adj_size;
     int visited; //for dfs
     int health_added;
-
 } Node;
 
 typedef struct Global
 {
     int initRange, jumpRange, numJumps, initPow;
     double powReduction;
+    int bestHealing;
+    Node **best_path;
+    int *healing;
+    int bestPathLength;
 } Global;
 
 int bestHealing = 0;
 
-int DFS(Node *index, Global *info, int hop, int total_healing) {
+void DFS(Node *index, Global *info, int hop, int total_healing, Node *from) {
 
 
-    int power = rint(info->initPow * pow(1-info->powReduction, hop - 1));
-    
-    printf("power: %d\n", power);
-
+    int power = rint(info->initPow * pow(1-info->powReduction, hop - 1)); //sets power (works)
 
     if(index->visited == 1) { //check if visited
-        return total_healing;
+        return;
     }
 
     if(info->numJumps - (hop - 1) == 0) {
-        return total_healing;
+        return;
     }
 
     index->visited = 1; //set visited field
+    
+   
 
-   printf("visited: %s  hop: %d \n", index->name, hop);
+   // printf("power: %d\n", power);
     int healingAdded;
     if((index->max_PP - index->cur_PP) <= power) { //set new health value
         healingAdded = index->max_PP - index->cur_PP;
         total_healing += healingAdded; // adding healed amount
-        printf("1: healed %s %d HP\n", index->name, healingAdded);
+   //     printf("1: healed %s %d HP\n", index->name, healingAdded);
         index->cur_PP = index->max_PP;
     } else if ((index->max_PP - index->cur_PP) > power) {
         healingAdded = power;
-        printf("2: healed %s %d HP\n", index->name, healingAdded);
+     //   printf("2: healed %s %d HP\n", index->name, healingAdded);
         total_healing += power;
         index->cur_PP += power;
     }
 
-    printf("current HP: %d/%d\n\n", index->cur_PP, index->max_PP);
-    
+   info->bestPathLength += 1;
 
-    hop += 1;
-    
-    int amount;
+   // printf("current HP: %d/%d\n\n", index->cur_PP, index->max_PP);
+    printf(": %s  hop: %d \n", index->name, hop);
     for(int i = 0; i < index->adj_size; i++) {
-        amount = DFS(index->adj[i], info, hop, total_healing);
-        if(amount > bestHealing) {
-            bestHealing = amount;
-        }
-        
+        DFS(index->adj[i], info, hop + 1, total_healing, index);      
     }
 
+    index->health_added = healingAdded;
+    
+    index->prev = from;
+
+    if(bestHealing < total_healing) {
+        Node *curr = index;
+        bestHealing = total_healing;
+        for(int i = info->bestPathLength; i >= 0; i--) { //putting path into best_path in reverse order;
+            info->best_path[i] = curr;
+            curr = index->prev;
+        }
+    }
+
+    
     index->visited = 0;
-    return total_healing;
+    index->cur_PP -= healingAdded;
+    info->bestPathLength -= 1;
+    return;
 }
 
 void printNode(Node node)
 {
     printf("x: %d\n", node.x);
     printf("y: %d\n", node.y);
-    printf("Current PP: %d\n", node.cur_PP);
-    printf("Max PP: %d\n", node.max_PP);
+    printf("Current PP: %d\n", node.cur_PP);    printf("Max PP: %d\n", node.max_PP);
     printf("Name: %s\n", node.name);
     if (node.prev != NULL)
     {
@@ -105,6 +116,8 @@ void resetNodes(Node **nodeArray, int nodeCount) {
 int main(int argc, char **argv) // initial range, jump range, num jumps, initial power, power reduction
 {
     Global *info = (Global *) malloc(sizeof(Global));
+    info->bestHealing = 0;
+    
     if (argc != 6)
     {
         printf("incorrect number of arguements");
@@ -126,6 +139,7 @@ int main(int argc, char **argv) // initial range, jump range, num jumps, initial
     Node *previous = &node; // keeps track of previous node
     node.name = malloc(256);
     node.prev = NULL;
+    node.health_added = 0;
     scanf("%d %d %d %d %255s", &node.x, &node.y, &node.cur_PP, &node.max_PP, node.name);
     int nodeCount = 1; // urgosa's node
 
@@ -136,6 +150,7 @@ int main(int argc, char **argv) // initial range, jump range, num jumps, initial
     while (scanf("%d %d %d %d %255s", &x, &y, &curr_PP, &max_PP, name) == 5)
     {
         Node *newNode = malloc(nodeSize);
+        newNode->health_added = 0;
         newNode->x = x;
         newNode->y = y;
         newNode->cur_PP = curr_PP;
@@ -148,7 +163,10 @@ int main(int argc, char **argv) // initial range, jump range, num jumps, initial
         // printNode(*newNode);
     }
 
-    Node **nodeArray = (Node **)malloc(nodeCount * sizeof(Node *)); // initialize array
+    Node **nodeArray = (Node **) malloc(nodeCount * sizeof(Node *)); // initialize array
+    info->best_path = (Node **) malloc(sizeof(Node) * info->numJumps); //create array for best path
+    info->healing = malloc(sizeof(int) * info->numJumps);
+
 
     for (int i = nodeCount - 1; i >= 0; i--)
     { // assign array the node pointers backwards
@@ -214,28 +232,15 @@ int main(int argc, char **argv) // initial range, jump range, num jumps, initial
                 if(sqrt(xVal * xVal) + (yVal * yVal) <= info->initRange)  {
                     resetNodes(nodeArray, nodeCount);
                     printf("calling DFS \n");
-                    DFS(nodeArray[i], info, 1, 0);
+                    DFS(nodeArray[i], info, 1, 0, NULL);
                 }
             }
             printf("Best Heal: %d\n", bestHealing);
+
+            for(int i = 0; i < info->bestPathLength; i++) {
+                printf("%s %d", info->best_path[i]->name, info->best_path[i]->health_added);
+            }
+
            return 0;
         }
 
-        /*
-        Doing the DFS: Now you should add a visited field to each node for your DFS. 
-        You should write a DFS() procedure, which has three arguments:
-
-        The node.
-        The hop number.
-        A pointer to a struct that contains global information (such as num_jumps, and power_reduction).
-        Now write a DFS that traverses all of the paths from each starting node. Have it print out [node,hop] 
-        for each time that it visits a node.
-        
-        Check n's visited field. If true, then return.
-        Set n's visited field to true.
-        Optionally do some activity on n.
-        Then, for all edges of the form (n,u) call DFS on u.
-        Optionally Do some final activity on n.
-        Return.
-        
-        */
