@@ -18,8 +18,8 @@ typedef struct person
 {
     char *name;
     char sex;
-    struct Person *father;
-    struct Person *mother;
+    struct person *father;
+    struct person *mother;
     JRB childrenList;
     int visited;
     int unParents;
@@ -30,11 +30,12 @@ typedef struct person
 char *readName(IS is)
 {
     char *name = (char *)malloc(256);
+    name[0] = '\0';
     for (int i = 1; i < is->NF; i++) // read in full name
     {
 
         strcat(name, is->fields[i]);
-        if (i <= is->NF)
+        if (i + 1 < is->NF)
         {
             strcat(name, " ");
         }
@@ -45,12 +46,12 @@ char *readName(IS is)
 int main()
 {
     int i = 0;
-    JRB people, rNode;
+    JRB people, rNode, temp;
     IS is;
     Person *p;
     char *name;
     is = new_inputstruct(NULL);
-    people = make_jrb();
+    people = make_jrb(); //FREE
 
     while (get_line(is) >= 0)
     {
@@ -63,6 +64,8 @@ int main()
 
                 p = (Person *) malloc(sizeof(Person));
                 p->name = strdup(name); // make space for name
+                JRB cList = make_jrb();
+                p->childrenList = cList;
                 printf("%s's struct is being created\n", p->name);
 
                 while (get_line(is) >= 0 && is->NF > 0)
@@ -75,27 +78,28 @@ int main()
                     }
                     if (strcmp(is->fields[0], "FATHER") == 0) //if father field is available
                     {
-                        char *dadName = readName(is);
-                        printf("%s's father is %s\n", p->name, dadName);
-                        rNode = jrb_find_str(people, dadName);
-                        if(rNode != NULL) { //if father is already in tree
-                           printf("%s's father is already in the tree\n", p->name); 
-                           p->father = (Person *) rNode->val.v; //ISSUE
-                           if(jrb_find_str(p->father->childrenList, p->name) == NULL) { //if p is not in childrenList of father
-                            jrb_insert_str(p->father->childrenList, p->name, new_jval_v(p)); //insert into children list (ISSUE)
-                           } else {
+                         char *dadName = readName(is);
+                         printf("%s's father is %s\n", p->name, dadName);
+                         rNode = jrb_find_str(people, dadName);
+                         if(rNode != NULL) { //if father is already in tree
+                            printf("%s's father is already in the tree\n", p->name); 
+                            p->father = (Person *) rNode->val.v; //ISSUE
+                            if(jrb_find_str(p->father->childrenList, p->name) == NULL) { //if p is not in childrenList of father
+                             jrb_insert_str(p->father->childrenList, p->name, new_jval_v(p)); //insert into children list (ISSUE)
+                            } else {
                             p->father = (Person *) rNode->val.v;
-                           }
-                        } else { //father is not in tree
-                            printf("%s's father is not in the tree\n", p->name);
-                            Person *father = (Person *) malloc(sizeof(Person));
-                            p->father = father;
-                            free(father);
-                            p->father->name = dadName;
-                            jrb_insert_str(p->father->childrenList, p->name, new_jval_v(p));
-                            jrb_insert_str(people, p->father->name, new_jval_v(p->father));
-                        }
-                    }
+                            }
+                         } else { //father is not in tree
+                             printf("%s's father is not in the tree\n", p->name);
+                    //         Person *father = (Person *) malloc(sizeof(Person));
+                    //         p->father = father;
+                    //          free(father);
+                    //         p->father->name = dadName;
+                    //         father->childrenList = make_jrb();
+                    //         jrb_insert_str(p->father->childrenList, p->name, new_jval_v((void *)p)); //seg faulting
+                    //         jrb_insert_str(people, p->father->name, new_jval_v((void *)p->father));
+                         }
+                     }
                     // if(strcmp(is->fields[0], "MOTHER") == 0) {
                     //     char *momName = readName(is);
                     //     printf("%s's mother is %s", p->name, momName);
@@ -129,10 +133,21 @@ int main()
 
                 }
                 printf("Inserting %s into the family tree\n", p->name);
-                jrb_insert_str(people, p->name, p);
+                jrb_insert_str(people, p->name, new_jval_v(p));
             }
         }
     }
+
+    //print family tree
+printf("\n\n");
+    jrb_traverse(temp, people) {
+    p = (Person *) temp->val.v;
+    printf("name: %s\nsex: %c\n", p->name, p->sex);
+    if(p->father == NULL) {
+        printf("father: unknown\n");
+    } else {
+        printf("father : %s\n", p->father);
+    }
+  }
     return 0;
 }
-
